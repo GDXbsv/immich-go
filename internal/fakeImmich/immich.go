@@ -3,6 +3,7 @@ package fakeimmich
 import (
 	"context"
 	"io"
+	"time"
 
 	"github.com/simulot/immich-go/browser"
 	"github.com/simulot/immich-go/immich"
@@ -14,8 +15,15 @@ func (c *MockedCLient) GetAllAssetsWithFilter(context.Context, func(*immich.Asse
 	return nil
 }
 
+func (ic *MockedCLient) AssetReplace(ctx context.Context, id string, fileCreatedAt immich.ImmichTime, deviceId string, duration time.Duration, la *browser.LocalAssetFile) (immich.AssetResponse, error) {
+	return immich.AssetResponse{}, nil
+}
+
 func (c *MockedCLient) AssetUpload(context.Context, *browser.LocalAssetFile) (immich.AssetResponse, error) {
 	return immich.AssetResponse{}, nil
+}
+func (ic *MockedCLient) DownloadAssets(ctx context.Context, id string) (io.ReadCloser, error) {
+	return nil, nil
 }
 
 func (c *MockedCLient) DeleteAssets(context.Context, []string, bool) error {

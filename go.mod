@@ -1,8 +1,6 @@
 module github.com/simulot/immich-go
 
-go 1.22
-
-toolchain go1.22.5
+go 1.23.5
 
 require (
 	github.com/gdamore/tcell/v2 v2.7.4
@@ -30,7 +28,8 @@ require (
 	github.com/pkg/sftp v1.13.6 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
-	golang.org/x/crypto v0.17.0 // indirect
+	github.com/stretchr/testify v1.8.4 // indirect
+	golang.org/x/crypto v0.23.0 // indirect
 	golang.org/x/sys v0.20.0 // indirect
 	golang.org/x/term v0.20.0 // indirect
 	golang.org/x/text v0.15.0 // indirect

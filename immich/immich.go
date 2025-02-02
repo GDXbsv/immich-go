@@ -29,7 +29,9 @@ type ImmichInterface interface {
 	UpdateAssets(ctx context.Context, IDs []string, isArchived bool, isFavorite bool, latitude float64, longitude float64, removeParent bool, stackParentID string) error
 	GetAllAssetsWithFilter(context.Context, func(*Asset) error) error
 	AssetUpload(context.Context, *browser.LocalAssetFile) (AssetResponse, error)
+	AssetReplace(ctx context.Context, id string, fileCreatedAt ImmichTime, deviceId string, duration time.Duration, la *browser.LocalAssetFile) (AssetResponse, error)
 	DeleteAssets(context.Context, []string, bool) error
+	DownloadAssets(ctx context.Context, id string) (io.ReadCloser, error)
 
 	GetAllAlbums(ctx context.Context) ([]AlbumSimplified, error)
 	GetAlbumInfo(ctx context.Context, id string, withoutAssets bool) (AlbumContent, error)

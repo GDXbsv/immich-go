@@ -43,6 +43,95 @@ func formatDuration(duration time.Duration) string {
 	return fmt.Sprintf("%02d:%02d:%02d.%06d", hours, minutes, seconds, milliseconds)
 }
 
+func (ic *ImmichClient) AssetReplace(ctx context.Context, id string, fileCreatedAt ImmichTime, deviceId string, duration time.Duration, la *browser.LocalAssetFile) (AssetResponse, error) {
+	var ar AssetResponse
+	ext := path.Ext(la.FileName)
+	if strings.TrimSuffix(la.Title, ext) == "" {
+		la.Title = "No Name" + ext // fix #88, #128
+	}
+
+	if strings.ToUpper(ext) == ".MP" {
+		ext = ".MP4" // #405
+		la.Title = la.Title + ".MP4"
+	}
+	mtype := ic.TypeFromExt(ext)
+	switch mtype {
+	case "video", "image":
+	default:
+		return ar, fmt.Errorf("type file not supported: %s", path.Ext(la.FileName))
+	}
+
+	f, err := la.Open()
+	if err != nil {
+		return ar, (err)
+	}
+
+	body, pw := io.Pipe()
+	m := multipart.NewWriter(pw)
+
+	go func() {
+		defer func() {
+			m.Close()
+			pw.Close()
+		}()
+		var s fs.FileInfo
+		s, err = f.Stat()
+		if err != nil {
+			return
+		}
+
+		err = m.WriteField("deviceAssetId", fmt.Sprintf("%s-%d", path.Base(la.Title), s.Size()))
+		if err != nil {
+			return
+		}
+		err = m.WriteField("deviceId", deviceId)
+		if err != nil {
+			return
+		}
+		fileCreatedAtStr := fileCreatedAt.Format(time.RFC3339)
+		err = m.WriteField("fileCreatedAt", fileCreatedAtStr)
+		if err != nil {
+			return
+		}
+		err = m.WriteField("fileModifiedAt", s.ModTime().Format(time.RFC3339))
+		if err != nil {
+			return
+		}
+		err = m.WriteField("duration", formatDuration(duration))
+		if err != nil {
+			return
+		}
+
+		h := textproto.MIMEHeader{}
+		h.Set("Content-Disposition",
+			fmt.Sprintf(`form-data; name="%s"; filename="%s"`,
+				escapeQuotes("assetData"), escapeQuotes(path.Base(la.Title))))
+		h.Set("Content-Type", mtype)
+
+		var part io.Writer
+		part, err = m.CreatePart(h)
+		if err != nil {
+			return
+		}
+		_, err = io.Copy(part, f)
+		if err != nil {
+			return
+		}
+	}()
+
+	var callValues map[string]string
+	if ic.apiTraceWriter != nil {
+		callValues = map[string]string{
+			ctxAssetName: la.FileName,
+		}
+	}
+
+	errCall := ic.newServerCall(ctx, "AssetReplace").
+		do(putRequest("/assets/"+id+"/original", setContentType(m.FormDataContentType()), setContextValue(callValues), setAcceptJSON(), setBody(body)), responseJSON(&ar))
+
+	err = errors.Join(err, errCall)
+	return ar, err
+}
 func (ic *ImmichClient) AssetUpload(ctx context.Context, la *browser.LocalAssetFile) (AssetResponse, error) {
 	var ar AssetResponse
 	ext := path.Ext(la.FileName)
@@ -252,6 +341,18 @@ func (ic *ImmichClient) DeleteAssets(ctx context.Context, id []string, forceDele
 	}
 
 	return ic.newServerCall(ctx, "DeleteAsset").do(deleteRequest("/assets", setJSONBody(&req)))
+}
+
+func (ic *ImmichClient) DownloadAssets(ctx context.Context, id string) (io.ReadCloser, error) {
+	request := getRequest("/assets/" + id + "/original")
+	var body io.ReadCloser
+	err := ic.newServerCall(ctx, "DownloadAsset").do(request, func(sc *serverCall, resp *http.Response) error {
+		body = resp.Body
+
+		return nil
+	})
+
+	return body, err
 }
 
 func (ic *ImmichClient) GetAssetByID(ctx context.Context, id string) (*Asset, error) {

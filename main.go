@@ -11,6 +11,7 @@ import (
 	"runtime/debug"
 
 	"github.com/simulot/immich-go/cmd"
+	"github.com/simulot/immich-go/cmd/compress"
 	"github.com/simulot/immich-go/cmd/duplicate"
 	"github.com/simulot/immich-go/cmd/metadata"
 	"github.com/simulot/immich-go/cmd/stack"
@@ -124,6 +125,8 @@ func Run(ctx context.Context) error {
 		err = upload.UploadCommand(ctx, &app, fs.Args()[1:])
 	case "duplicate":
 		err = duplicate.DuplicateCommand(ctx, &app, fs.Args()[1:])
+	case "compress":
+		err = compress.CompressCommand(ctx, &app, fs.Args()[1:])
 	case "metadata":
 		err = metadata.MetadataCommand(ctx, &app, fs.Args()[1:])
 	case "stack":
